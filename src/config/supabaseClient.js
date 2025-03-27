@@ -8,10 +8,7 @@ const supabase = createClient(
 
 // ทดสอบการเชื่อมต่อ
 async function testConnection() {
-  const { data, error } = await supabase
-    .from("stock_tasks")
-    .select("*")
-    .limit(1);
+  const { data, error } = await supabase.from("stock_tasks").select("*");
 
   if (error) {
     console.error("Connection Failed:", error.message);
