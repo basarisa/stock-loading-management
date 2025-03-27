@@ -1,7 +1,6 @@
-require("dotenv").config(); // โหลดค่าจากไฟล์ .env
-
 const express = require("express");
 const cors = require("cors");
+require("dotenv").config(); // โหลดค่าจากไฟล์ .env
 // const supabase = require("./supabaseClient");
 
 const app = express();
