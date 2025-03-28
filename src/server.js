@@ -1,8 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const stockTasksRoutes = require("./routes/stockTasksRoutes");
+
 require("dotenv").config(); // โหลดค่าจากไฟล์ .env
-// const supabase = require("./supabaseClient");
 
 const app = express();
 const PORT = process.env.PORT;
