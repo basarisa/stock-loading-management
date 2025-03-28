@@ -91,6 +91,10 @@ const getStockTasks = async (req, res) => {
 
 // สร้าง Stock Task ใหม่ (ตรวจสอบว่า tasknumber มีอยู่แล้วหรือไม่)
 const createStockTask = async (req, res) => {
+  // TODO use JWT auth to get the requester role
+  const requester = {
+    role: "manager", // example role, replace with actual role from JWT
+  };
   const {
     tasknumber,
     createdby,
@@ -102,6 +106,12 @@ const createStockTask = async (req, res) => {
     weight,
     specialinstructions,
   } = req.body;
+
+  if (!["supervisor", "manager"].includes(requester.role)) {
+    return res.status(403).json({
+      error: "Permission denied, only manager or supervisor can create tasks ",
+    });
+  }
 
   // ตรวจสอบว่า tasknumber มีอยู่แล้วหรือไม่
   const { data: existingTask, error: checkError } = await supabase
