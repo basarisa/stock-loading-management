@@ -6,7 +6,7 @@ CREATE TABLE stock_tasks (
     startedAt TIMESTAMP,
     finishedAt TIMESTAMP,
     type TEXT CHECK (type IN ('Regular Load', 'Urgent Load', 'Special Load')),
-    status TEXT CHECK (status IN ('Created', 'Assigned', 'In Progress', 'Done', 'Cancelled')),
+    status TEXT CHECK (status IN ('Created', 'Assigned', 'In Progress', 'Done', 'Cancelled', 'Cancelled by Requester')),
     description TEXT,
     dimensions TEXT,
     weight TEXT,

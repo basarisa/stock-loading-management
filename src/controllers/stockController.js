@@ -89,7 +89,6 @@ const getStockTasks = async (req, res) => {
  *         description: Internal Server Error
  */
 
-// สร้าง Stock Task ใหม่ (ตรวจสอบว่า tasknumber มีอยู่แล้วหรือไม่)
 const createStockTask = async (req, res) => {
   // TODO use JWT auth to get the requester role
   const requester = {
@@ -177,7 +176,7 @@ const createStockTask = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               status:
+ *               new_status:
  *                 type: string
  *     responses:
  *       200:
@@ -189,31 +188,35 @@ const createStockTask = async (req, res) => {
  */
 
 // อัปเดต Stock Task ตาม Task Number (ตรวจสอบว่ามี tasknumber หรือไม่)
-// อัปเดต Stock Task ตาม Task Number (ตรวจสอบว่ามี tasknumber หรือไม่)
 const updateStockTask = async (req, res) => {
   const { taskNumber } = req.params;
-  const { status } = req.body;
+  const { new_status: newStatus } = req.body;
 
-  // ตรวจสอบว่ามี tasknumber นี้อยู่ในระบบหรือไม่
-  const { data: existingTask, error: checkError } = await supabase
+  // Get existing task data
+  const { data: task, error: taskError } = await supabase
     .from("stock_tasks")
-    .select("tasknumber", "status", "finishedat") // select the status and finishedat to check
+    .select("*")
     .eq("tasknumber", taskNumber)
     .maybeSingle();
-
-  if (checkError) {
-    return res.status(500).json({ error: checkError.message });
+  if (taskError) {
+    return res.status(500).json({ error: taskError.message });
   }
-
-  if (!existingTask) {
+  if (!task) {
     return res.status(404).json({ message: "Stock Task not found" });
   }
 
+  // Check if the status is valid
+  if (newStatus == "Cancelled by Requester" && task.type !== "Regular Load") {
+    return res.status(400).json({
+      error: "Only Regular Load can be cancelled by Requester",
+    });
+  }
+
   // ตรวจสอบสถานะใหม่
-  let updateFields = { status };
+  let updateFields = { status: newStatus };
 
   // ถ้าสถานะเป็น "Done" และ finishedat ยังไม่มีค่า ให้ตั้งค่า finishedat
-  if (status === "Done" && !existingTask.finishedat) {
+  if (newStatus === "Done" && !task.finishedat) {
     updateFields.finishedat = new Date().toISOString();
   }
 
@@ -221,7 +224,7 @@ const updateStockTask = async (req, res) => {
   const { data, error } = await supabase
     .from("stock_tasks")
     .update(updateFields)
-    .eq("tasknumber", taskNumber)
+    .eq("tasknumber", taskNumber) 
     .select();
 
   if (error) {
