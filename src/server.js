@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const stockTasksRoutes = require("./routes/stockTasksRoutes");
+const { swaggerDocs, swaggerUi } = require("./config/swaggerConfig"); // นำเข้า Swagger
 
 require("dotenv").config(); // โหลดค่าจากไฟล์ .env
 
@@ -10,6 +11,9 @@ const PORT = process.env.PORT;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// ตั้งค่า Swagger UI
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Routes
 app.use("/api", stockTasksRoutes);

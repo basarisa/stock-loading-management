@@ -1,5 +1,37 @@
 const supabase = require("../config/supabaseClient");
 
+/**
+ * @swagger
+ * /stock-tasks:
+ *   get:
+ *     summary: Get a list of stock tasks
+ *     description: Retrieve all stock tasks from the database
+ *     responses:
+ *       200:
+ *         description: A list of stock tasks
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   tasknumber:
+ *                     type: string
+ *                   createdby:
+ *                     type: string
+ *                   assignedto:
+ *                     type: string
+ *                   product:
+ *                     type: string
+ *                   type:
+ *                     type: string
+ *                   status:
+ *                     type: string
+ *       500:
+ *         description: Internal Server Error
+ */
+
 // ดึง Stock Tasks ทั้งหมด
 const getStockTasks = async (req, res) => {
   const { data, error } = await supabase.from("stock_tasks").select("*");
@@ -11,9 +43,65 @@ const getStockTasks = async (req, res) => {
   res.json(data);
 };
 
+/**
+ * @swagger
+ * /stock-tasks:
+ *   post:
+ *     summary: Create a new stock task
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               tasknumber:
+ *                 type: string
+ *               createdby:
+ *                 type: string
+ *               assignedto:
+ *                 type: string
+ *               product:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *               startedat:
+ *                 type: string
+ *                 nullable: true
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *               dimensions:
+ *                 type: string
+ *                 nullable: true
+ *               weight:
+ *                 type: string
+ *                 nullable: true
+ *               specialinstructions:
+ *                 type: string
+ *                 nullable: true
+ *     responses:
+ *       201:
+ *         description: Stock task created successfully
+ *       400:
+ *         description: Task number already exists
+ *       500:
+ *         description: Internal Server Error
+ */
+
 // สร้าง Stock Task ใหม่ (ตรวจสอบว่า tasknumber มีอยู่แล้วหรือไม่)
 const createStockTask = async (req, res) => {
-  const { tasknumber, createdby, assignedto, product, type, status } = req.body;
+  const {
+    tasknumber,
+    createdby,
+    assignedto,
+    product,
+    type,
+    description,
+    dimensions,
+    weight,
+    specialinstructions,
+  } = req.body;
 
   // ตรวจสอบว่า tasknumber มีอยู่แล้วหรือไม่
   const { data: existingTask, error: checkError } = await supabase
@@ -33,7 +121,21 @@ const createStockTask = async (req, res) => {
   // ถ้าไม่มี tasknumber ซ้ำ ให้เพิ่มข้อมูลใหม่
   const { data, error } = await supabase
     .from("stock_tasks")
-    .insert([{ tasknumber, createdby, assignedto, product, type, status }])
+    .insert([
+      {
+        tasknumber,
+        createdby,
+        assignedto,
+        product,
+        type,
+        status: "Created",
+        description,
+        dimensions,
+        weight,
+        specialinstructions,
+        startedat: new Date().toISOString(),
+      },
+    ])
     .select();
 
   if (error) {
@@ -46,6 +148,37 @@ const createStockTask = async (req, res) => {
   });
 };
 
+/**
+ * @swagger
+ * /stock-tasks/{taskNumber}:
+ *   put:
+ *     summary: Update the status of a stock task
+ *     parameters:
+ *       - name: taskNumber
+ *         in: path
+ *         required: true
+ *         description: The task number to update
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Stock task updated successfully
+ *       404:
+ *         description: Task not found
+ *       500:
+ *         description: Server error
+ */
+
+// อัปเดต Stock Task ตาม Task Number (ตรวจสอบว่ามี tasknumber หรือไม่)
 // อัปเดต Stock Task ตาม Task Number (ตรวจสอบว่ามี tasknumber หรือไม่)
 const updateStockTask = async (req, res) => {
   const { taskNumber } = req.params;
@@ -54,7 +187,7 @@ const updateStockTask = async (req, res) => {
   // ตรวจสอบว่ามี tasknumber นี้อยู่ในระบบหรือไม่
   const { data: existingTask, error: checkError } = await supabase
     .from("stock_tasks")
-    .select("tasknumber")
+    .select("tasknumber", "status", "finishedat") // select the status and finishedat to check
     .eq("tasknumber", taskNumber)
     .maybeSingle();
 
@@ -66,10 +199,18 @@ const updateStockTask = async (req, res) => {
     return res.status(404).json({ message: "Stock Task not found" });
   }
 
+  // ตรวจสอบสถานะใหม่
+  let updateFields = { status };
+
+  // ถ้าสถานะเป็น "Done" และ finishedat ยังไม่มีค่า ให้ตั้งค่า finishedat
+  if (status === "Done" && !existingTask.finishedat) {
+    updateFields.finishedat = new Date().toISOString();
+  }
+
   // ทำการอัปเดตข้อมูล
   const { data, error } = await supabase
     .from("stock_tasks")
-    .update({ status })
+    .update(updateFields)
     .eq("tasknumber", taskNumber)
     .select();
 
