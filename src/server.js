@@ -20,8 +20,7 @@ app.use("/api", stockTasksRoutes);
 
 // Route ทดสอบ API
 app.get("/", (req, res) => {
-  console.log("Got a call here /");
-  res.send("Hello from Express.js Backend!");
+  res.send("Server running");
 });
 
 // เริ่มต้น Server
